@@ -36,13 +36,13 @@ def lambda_handler(event, context):
         password.send_keys('Upgrademyspoty1')
         time.sleep(2)
         print("Clicking login", driver.current_url)
-        driver.execute_script("window.scrollTo(0, 500)")
 
         enter = driver.find_element(By.ID, 'login-button')
         enter.click()
         time.sleep(2)
         # While still in login, keep clicking the button
         while driver.current_url == "https://accounts.spotify.com/en/login":
+            driver.execute_script("window.scrollTo(0, 500)")
             time.sleep(4)
             print("Clicking login again", driver.current_url)
             enter.click()

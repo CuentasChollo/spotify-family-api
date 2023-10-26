@@ -41,8 +41,8 @@ def lambda_handler(event, context):
         enter = driver.find_element(By.ID, 'login-button')
         enter.click()
         time.sleep(2)
-        #If still in login, click the button again
-        if driver.current_url == "https://accounts.spotify.com/en/login":
+        # While still in login, keep clicking the button
+        while driver.current_url == "https://accounts.spotify.com/en/login":
             time.sleep(4)
             print("Clicking login again", driver.current_url)
             enter.click()

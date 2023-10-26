@@ -21,7 +21,9 @@ COPY --from=build /opt/chromedriver-linux64 /opt/
 # Install necessary software
 RUN yum install -y wget unzip xorg-x11-server-Xvfb
 
+RUN python -m pip install ffmpeg
 
+RUN pip install ffmpeg-python
 
 
 

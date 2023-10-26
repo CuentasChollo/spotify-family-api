@@ -35,23 +35,34 @@ def lambda_handler(event, context):
         password = driver.find_element(By.ID, "login-password")
         password.send_keys('Upgrademyspoty1')
         time.sleep(2)
-        print("Clicking login")
+        print("Clicking login", driver.current_url)
+        driver.execute_script("window.scrollTo(0, 500)")
+
         enter = driver.find_element(By.ID, 'login-button')
         enter.click()
         time.sleep(2)
-        
-        # Check if the current URL is challenge.spotify.com
-        if urlparse(driver.current_url).netloc == "challenge.spotify.com":
-            solve_captcha(driver)  # Call the solve_captcha function
+        #If still in login, click the button again
+        if driver.current_url == "https://accounts.spotify.com/en/login":
+            time.sleep(4)
+            print("Clicking login again", driver.current_url)
+            enter.click()
             time.sleep(2)
 
+        print("Login clicked", driver.current_url)
+        # Check if the current URL is challenge.spotify.com
+        if urlparse(driver.current_url).netloc == "challenge.spotify.com":
+            print("Captcha found", driver.current_url)
+            solve_captcha(driver)  # Call the solve_captcha function
+            time.sleep(3)
 
+        print("Catcha solved", driver.current_url)
         #if driver.current_url != "https://www.spotify.com/es/account/overview/":
             #raise Exception(driver.current_url)
 
+    
         driver.get('https://www.spotify.com/es/account/family/')
         time.sleep(2)
-
+        print("Clicking manage", driver.current_url)
         #cookies = driver.find_element(By.ID, 'onetrust-accept-btn-handler')
         #cookies.click()
         #time.sleep(2)

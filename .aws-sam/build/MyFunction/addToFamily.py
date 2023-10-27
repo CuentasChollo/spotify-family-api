@@ -29,11 +29,9 @@ def add_to_family(event, context):
     options.add_argument("--remote-debugging-port=9222")
 
     driver = webdriver.Chrome('/opt/chromedriver', options=options)
-    driver.maximize_window()
+
     try:
         driver.get('https://accounts.spotify.com/en/login')
-        #print window size
-        print("Window size: ", driver.get_window_size())
         loginuser = driver.find_element(By.ID, "login-username")
         loginuser.send_keys(event['email'])
         time.sleep(2)
@@ -46,22 +44,16 @@ def add_to_family(event, context):
         enter.click()
         time.sleep(4)
         # While still in login, keep clicking the button
-        attempts = 0
-        while driver.current_url == "https://accounts.spotify.com/en/login" and attempts < 4:
+        while driver.current_url == "https://accounts.spotify.com/en/login":
             driver.execute_script("window.scrollTo(0, 500)")
             time.sleep(4)
             print("Clicking login again", driver.current_url)
             # Create an ActionChains instance
             actions = ActionChains(driver) 
             # Move to the button with an offset and click
-            actions.move_to_element_with_offset(enter, 5, 6).click().perform()
-            attempts += 1
-            time.sleep(2)
+            actions.move_to_element_with_offset(enter, 5, 5).click().perform()
 
-        #If the login button is still there, raise an exception
-        if driver.current_url == "https://accounts.spotify.com/en/login":
-            raise Exception("Failed to login after ", attempts, " attempts")
-        
+        print("Login clicked", driver.current_url)
         # Check if the current URL is challenge.spotify.com
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
             print("Captcha found", driver.current_url)
@@ -104,7 +96,7 @@ def add_to_family(event, context):
                     pass
 
 #Click save on the button type=submit
-        for i in range(1):
+        for i in range(10):
             try:
                 WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[type='submit']")))
                 save = driver.find_element(By.CSS_SELECTOR, "[type='submit']")

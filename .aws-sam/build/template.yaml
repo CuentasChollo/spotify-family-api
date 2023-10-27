@@ -1,0 +1,11 @@
+Resources:
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: MyFunction
+      Handler: addToFamily.add_to_family
+      Runtime: python3.11
+      MemorySize: 1024
+      Timeout: 60
+    Metadata:
+      SamResourceId: MyFunction

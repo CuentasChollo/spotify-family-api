@@ -30,7 +30,7 @@ RUN pip install ffmpeg-python
 RUN python -m pip install selenium-recaptcha-solver
 
 # Copy your function code
-COPY ./*.py ./
+COPY . ./
 
 
 # Set the CMD to your handler

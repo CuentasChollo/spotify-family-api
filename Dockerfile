@@ -30,9 +30,9 @@ RUN pip install ffmpeg-python
 RUN python -m pip install selenium-recaptcha-solver
 
 # Copy your function code
-COPY . ./
+COPY ./*.py ./
 
 
 # Set the CMD to your handler
-CMD ["lambda_function.lambda_handler"]
+CMD ["addToFamily.add_to_family"]
 

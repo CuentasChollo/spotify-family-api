@@ -9,6 +9,10 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
+import boto3
+
+
+
 
 def add_to_family(event, context):
     options = webdriver.ChromeOptions()
@@ -30,6 +34,7 @@ def add_to_family(event, context):
 
     driver = webdriver.Chrome('/opt/chromedriver', options=options)
     driver.maximize_window()
+    s3 = boto3.client('s3')
     try:
         driver.get('https://accounts.spotify.com/en/login')
         #print window size
@@ -74,36 +79,41 @@ def add_to_family(event, context):
 
         driver.get('https://www.spotify.com/us/account/profile/')
         time.sleep(2)
-        
-        #Change in the selector country to value=IN
-        select = Select(driver.find_element(By.ID, 'country'))
-        select.select_by_value('IN')
+        #Scroll down and up 4 times in a smooth way
+        for i in range(4):
+            driver.execute_script("window.scrollTo(0, 500)")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, 0)")
+            time.sleep(1)
 
-        #Scroll till the end
-        driver.execute_script("window.scrollTo(0, 500)")
-        print("Scrolling till the end")
-
-
-
-        #Cookies accept
-        #Cookies accept
         print("Trying to click cookies")
-        for i in range(10):
+        for i in range(5):
             try:
                 WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.ID, 'onetrust-accept-btn-handler')))
                 cookies = driver.find_element(By.ID, 'onetrust-accept-btn-handler')
                 driver.execute_script("window.scrollTo(0, 500)")
                 print("Proceeding to click cookies")
                 cookies.click()
+                print("Clicked cookies")
                 time.sleep(2)
                 break
             except:
                 print("Attempt", i+1, "failed. Trying again.")
-                if i == 9:
+                if i == 4:
                     print("Seems that there is no cookies")
-                    pass
+                    page_html = driver.page_source
+                    raise Exception(f"Failed to find cookies after 10 attempts. Page HTML: {page_html}")
+        
+        #Change in the selector country to value=IN
+        select = Select(driver.find_element(By.ID, 'country'))
+        select.select_by_value('IN')
+        selectText = select.first_selected_option.text
+        #Scroll till the end
+        driver.execute_script("window.scrollTo(0, 500)")
+        print("Scrolling till the end")
 
-#Click save on the button type=submit
+
+        #Click save on the button type=submit
         for i in range(1):
             try:
                 WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[type='submit']")))
@@ -136,7 +146,7 @@ def add_to_family(event, context):
         
     response = {
             "statusCode": 200,
-            "body": select.first_selected_option.text
+            "body": selectText
         }
 
     return response

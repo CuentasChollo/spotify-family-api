@@ -1,3 +1,4 @@
+import random
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 import boto3
-
+from aux import *
 
 
 
@@ -22,7 +23,7 @@ def add_to_family(event, context):
     options.add_argument("--headless=new")
     options.add_argument('--no-sandbox')
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1280x1696")
+    options.add_argument("--window-size=1024x768")
     options.add_argument("--single-process")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-dev-tools")
@@ -33,35 +34,46 @@ def add_to_family(event, context):
     options.add_argument("--remote-debugging-port=9222")
 
     driver = webdriver.Chrome('/opt/chromedriver', options=options)
-    driver.maximize_window()
+    driver.set_window_size(1024, 768)
     s3 = boto3.client('s3')
     try:
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
         driver.get('https://accounts.spotify.com/en/login')
-        #print window size
+  
         print("Window size: ", driver.get_window_size())
+         
+        time.sleep(random.uniform(2.0, 3.0))
+
         loginuser = driver.find_element(By.ID, "login-username")
-        loginuser.send_keys(event['email'])
-        time.sleep(2)
+        send_keys_naturally(loginuser, event['email'])
+        time.sleep(random.uniform(2.0, 3.0))
+
         password = driver.find_element(By.ID, "login-password")
-        password.send_keys(event['password'])
-        time.sleep(3)
+        send_keys_naturally(password, event['password'])
+        time.sleep(random.uniform(2.0, 3.0))
+
         print("Clicking login", driver.current_url)
-        driver.execute_script("window.scrollTo(0, 500)")
+
         enter = driver.find_element(By.ID, 'login-button')
-        enter.click()
+        actions = ActionChains(driver)
+        actions.move_to_element_with_offset(enter, 5, 6).click().perform()
         time.sleep(4)
         # While still in login, keep clicking the button
         attempts = 0
-        while driver.current_url == "https://accounts.spotify.com/en/login" and attempts < 4:
+        while driver.current_url == "https://accounts.spotify.com/en/login" and attempts < 3:
             driver.execute_script("window.scrollTo(0, 500)")
             time.sleep(4)
             print("Clicking login again", driver.current_url)
             # Create an ActionChains instance
             actions = ActionChains(driver) 
             # Move to the button with an offset and click
-            actions.move_to_element_with_offset(enter, 5, 6).click().perform()
+            actions.move_to_element_with_offset(enter, 10,10).click().perform()
             attempts += 1
-            time.sleep(2)
+            time.sleep(1)
+            if attempts == 2:
+                saveScreenshotThrowException(driver, s3, "Failed to login after {} attempts. Screenshot saved as ".format(attempts), throw=True)
+            time.sleep(1)
 
         #If the login button is still there, raise an exception
         if driver.current_url == "https://accounts.spotify.com/en/login":
@@ -101,9 +113,7 @@ def add_to_family(event, context):
                 print("Attempt", i+1, "failed. Trying again.")
                 if i == 4:
                     print("Seems that there is no cookies")
-                    page_html = driver.page_source
-                    raise Exception(f"Failed to find cookies after 10 attempts. Page HTML: {page_html}")
-        
+                    saveScreenshotThrowException(driver, s3, "Failed to find cookies after 10 attempts. Screenshot saved as ", throw=False)
         #Change in the selector country to value=IN
         select = Select(driver.find_element(By.ID, 'country'))
         select.select_by_value('IN')
@@ -129,7 +139,7 @@ def add_to_family(event, context):
                     cookies.click()
                     time.sleep(2)
                 except:
-                    print("Failed to click cookies")
+                    saveScreenshotThrowException(driver, s3, "Failed to find cookies after 10 attempts. Screenshot saved as ")
                 if i == 9:
                     print("Failed to click submit button after 10 attempts")
                     raise e
@@ -151,3 +161,17 @@ def add_to_family(event, context):
 
     return response
     
+
+
+
+def saveScreenshotThrowException(driver, s3, message="", throw=True):
+    print("Seems that there are no cookies")
+    screenshot_filename = f"/tmp/screenshot_{time.strftime('%Y%m%d-%H%M%S')}.png"
+    driver.save_screenshot(screenshot_filename)
+    print(f"Screenshot saved as {screenshot_filename}")
+                    
+    # Upload the screenshot to S3
+    with open(screenshot_filename, "rb") as data:
+        s3.upload_fileobj(data, "cc-chromedriver", screenshot_filename)
+                    
+    raise Exception(message + f"Screenshot saved as {screenshot_filename} in S3")

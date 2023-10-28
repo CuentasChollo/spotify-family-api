@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from captchasolver import solve_captcha
 from urllib.parse import urlparse
 from tempfile import mkdtemp
-
+from aux import *
 import time
 
 def lambda_handler(event, context):

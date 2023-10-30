@@ -5,8 +5,11 @@ from selenium.webdriver.common.by import By
 from captchasolver import solve_captcha
 from urllib.parse import urlparse
 from tempfile import mkdtemp
-from aux import *
+from helper import login, send_keys_naturally
+import boto3
 import time
+from selenium_stealth import stealth
+
 
 def lambda_handler(event, context):
     options = webdriver.ChromeOptions()
@@ -26,36 +29,32 @@ def lambda_handler(event, context):
     options.add_argument(f"--disk-cache-dir={mkdtemp()}")
     options.add_argument("--remote-debugging-port=9222")
 
+    #selenium_stealth options
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
     driver = webdriver.Chrome('/opt/chromedriver', options=options)
+    driver.set_window_size(1280, 1696)
+    s3 = boto3.client('s3')
+
+    stealth(driver,
+        languages=["en-US", "en"],
+        vendor="Google Inc.",
+        platform="Win32",
+        webgl_vendor="Intel Inc.",
+        renderer="Intel Iris OpenGL Engine",
+        fix_hairline=True,
+    )
 
     try:
-        driver.get('https://accounts.spotify.com/en/login')
-        loginuser = driver.find_element(By.ID, "login-username")
-        loginuser.send_keys('matvetron@gmail.com')
-        password = driver.find_element(By.ID, "login-password")
-        password.send_keys('Upgrademyspoty1')
-        time.sleep(2)
-        print("Clicking login", driver.current_url)
-
-        enter = driver.find_element(By.ID, 'login-button')
-        enter.click()
-        time.sleep(2)
-        # While still in login, keep clicking the button
-        while driver.current_url == "https://accounts.spotify.com/en/login":
-            driver.execute_script("window.scrollTo(0, 500)")
-            time.sleep(4)
-            print("Clicking login again", driver.current_url)
-            enter.click()
-            time.sleep(2)
-
-        print("Login clicked", driver.current_url)
+        login(driver, event, s3)
         # Check if the current URL is challenge.spotify.com
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
             print("Captcha found", driver.current_url)
             solve_captcha(driver)  # Call the solve_captcha function
             time.sleep(3)
 
-        print("Catcha solved", driver.current_url)
+        print("Catcha solved | No captcha", driver.current_url)
         #if driver.current_url != "https://www.spotify.com/es/account/overview/":
             #raise Exception(driver.current_url)
 
@@ -81,7 +80,9 @@ def lambda_handler(event, context):
             "body": str(e)
         }
     finally:
-        # Close the browser
+        driver.get('https://www.spotify.com/en/logout/')
+        print("Logging out")
+        time.sleep(1)
         driver.quit()
 
     response = {

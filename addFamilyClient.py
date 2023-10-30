@@ -15,7 +15,7 @@ from helper import login, saveScreenshotThrowException, send_keys_naturally
 from selenium_stealth import stealth
 
 
-def add_to_family(event, context):
+def add_family_client(event, context):
     options = webdriver.ChromeOptions()
     #service = webdriver.ChromeService("/opt/chromedriver")
 
@@ -120,6 +120,27 @@ def add_to_family(event, context):
                 if i == 9:
                     print("Failed to click submit button after 10 attempts")
                     raise e
+        
+        #https://www.spotify.com/es/family/join/invite/76yA3B1Xc2A6433/ transform to https://www.spotify.com/es/family/join/confirm/76yA3B1Xc2A6433/
+        #The argumetnt is event['invite']
+        driver.get('https://www.spotify.com/en/family/join/confirm/' + event['invite'])
+
+        driver.get('https://www.spotify.com/en/family/join/address/' + event['invite'])
+
+        WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'address')))
+        address = driver.find_element(By.ID, 'address')
+        address.click()
+        time.sleep(1)
+        address.send_keys("Tombs of the Kings Ave 63, Chloraka, Cyprus")
+
+        submit = driver.find_element(By.CSS_SELECTOR, "[type='submit']")
+        submit.click()
+        time.sleep(1)
+        confirm = driver.find_element(By.CSS_SELECTOR, "[data-encore-id='buttonPrimary']")
+        confirm.click()
+        time.sleep(1)
+        print("Clicked confirm | Accepted invite")
+
 
     except Exception as e:
         return {

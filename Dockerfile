@@ -28,11 +28,11 @@ RUN pip install ffmpeg-python
 
 
 RUN python -m pip install selenium-recaptcha-solver
+RUN python -m pip install selenium-stealth
 
 # Copy your function code
 COPY ./*.py ./
 
 
 # Set the CMD to your handler
-CMD ["addToFamily.add_to_family"]
-
+CMD ["lamda_function.lambda_handler"]

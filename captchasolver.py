@@ -13,7 +13,7 @@ def solve_captcha(driver):
     try:
         recaptcha_iframe = driver.find_element(By.XPATH, '//iframe[@title="reCAPTCHA"]')
         print("Found iframe")
-        time.sleep(2)
+        time.sleep(2.1)
         solver.click_recaptcha_v2(iframe=recaptcha_iframe)  
         print("Clicked recaptcha")
         time.sleep(2)

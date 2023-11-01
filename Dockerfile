@@ -29,6 +29,8 @@ RUN pip install ffmpeg-python
 
 RUN python -m pip install selenium-recaptcha-solver
 RUN python -m pip install selenium-stealth
+RUN python -m pip install fake_useragent
+RUN python -m pip install ffprobe-python
 
 # Copy your function code
 COPY ./*.py ./

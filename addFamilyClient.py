@@ -13,11 +13,15 @@ from selenium.webdriver import ActionChains
 import boto3
 from helper import login, saveScreenshotThrowException, send_keys_naturally
 from selenium_stealth import stealth
+from fake_useragent import UserAgent
 
 
 def add_family_client(event, context):
     options = webdriver.ChromeOptions()
     #service = webdriver.ChromeService("/opt/chromedriver")
+    ua = UserAgent()
+    userAgent = ua.random
+
 
     options.binary_location = '/opt/chrome/chrome'
     options.add_argument("--headless=new")
@@ -32,6 +36,7 @@ def add_family_client(event, context):
     options.add_argument(f"--data-path={mkdtemp()}")
     options.add_argument(f"--disk-cache-dir={mkdtemp()}")
     options.add_argument("--remote-debugging-port=9222")
+    options.add_argument(f'user-agent={userAgent}')
 
     driver = webdriver.Chrome('/opt/chromedriver', options=options)
     driver.set_window_size(1280, 1696)
@@ -58,10 +63,12 @@ def add_family_client(event, context):
             time.sleep(2)
 
         print("Catcha solved", driver.current_url)
-        #if driver.current_url != "https://www.spotify.com/es/account/overview/":
+        #if driver.current_url != "https://www.spotify.com/en/status/":
             #raise Exception(driver.current_url)
 
+        print("Going to profile page")
         driver.get('https://www.spotify.com/us/account/profile/')
+        print(driver.current_url)
         time.sleep(2)
         #Scroll down and up 4 times in a smooth way
         for i in range(4):
@@ -127,18 +134,28 @@ def add_family_client(event, context):
 
         driver.get('https://www.spotify.com/en/family/join/address/' + event['invite'])
 
+        print("Proceeding to enter address")
+        saveScreenshotThrowException(driver, s3, "Pre address ", throw=False)
         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'address')))
         address = driver.find_element(By.ID, 'address')
         address.click()
         time.sleep(1)
-        address.send_keys("Tombs of the Kings Ave 63, Chloraka, Cyprus")
-
-        submit = driver.find_element(By.CSS_SELECTOR, "[type='submit']")
-        submit.click()
+        address.send_keys("Tombs of the Kings Ave 63, Chloraka 8015")
+        #pRESSS TAB AND ENTER
+        address.send_keys(u'\ue004')
+        address.send_keys(u'\ue007')
         time.sleep(1)
+        print("Address entered")
+
+        #saveScreenshotThrowException(driver, s3, "Address entered. Screenshot saved as ", throw=False)
+        #submit = driver.find_element(By.CSS_SELECTOR, "[type='submit']")
+        #submit.click()
+        time.sleep(1)
+        saveScreenshotThrowException(driver, s3, "Clicked submit. Screenshot saved as ", throw=False)
         confirm = driver.find_element(By.CSS_SELECTOR, "[data-encore-id='buttonPrimary']")
         confirm.click()
         time.sleep(1)
+        saveScreenshotThrowException(driver, s3, "Clicked confirm. Screenshot saved as ", throw=False)
         print("Clicked confirm | Accepted invite")
 
 

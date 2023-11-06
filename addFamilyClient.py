@@ -1,5 +1,6 @@
 import random
 import time
+import uuid
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -16,12 +17,28 @@ from selenium_stealth import stealth
 from fake_useragent import UserAgent
 
 
+tasks_table = boto3.resource('dynamodb').Table('tasks')
+
 def add_family_client(event, context):
     options = webdriver.ChromeOptions()
     #service = webdriver.ChromeService("/opt/chromedriver")
     ua = UserAgent()
     userAgent = ua.random
 
+
+    familly_address = event['address']
+    invite_code = event['invite_code']
+    #email = event['email']
+    #password = event['password']
+    task_id = event['task_id']
+
+    tasks_table.update_item(
+        Key={'task_id': task_id},
+        UpdateExpression="set status_string = :s",
+        ExpressionAttributeValues={
+            ':s': 'RECEIVED'
+        }
+    )
 
     options.binary_location = '/opt/chrome/chrome'
     options.add_argument("--headless=new")
@@ -42,6 +59,12 @@ def add_family_client(event, context):
     driver.set_window_size(1280, 1696)
     s3 = boto3.client('s3')
 
+    #dynamodb = boto3.client('s3')
+    #table = dynamodb.Table('tasks')
+    #task_id = str(uuid.uuid4())
+    #table.put_item(Item={'task_id': task_id, 'status': 'IN_PROGRESS'})
+
+
     stealth(driver,
         languages=["en-US", "en"],
         vendor="Google Inc.",
@@ -53,6 +76,14 @@ def add_family_client(event, context):
 
     try:
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        tasks_table.update_item(
+            Key={'task_id': task_id},
+            UpdateExpression="set status_string = :s",
+            ExpressionAttributeValues={
+                ':s': 'COMMENCING'
+            }
+        )
 
         login(driver, event, s3)
         
@@ -130,9 +161,9 @@ def add_family_client(event, context):
         
         #https://www.spotify.com/es/family/join/invite/76yA3B1Xc2A6433/ transform to https://www.spotify.com/es/family/join/confirm/76yA3B1Xc2A6433/
         #The argumetnt is event['invite']
-        driver.get('https://www.spotify.com/en/family/join/confirm/' + event['invite'])
+        driver.get('https://www.spotify.com/en/family/join/confirm/' + invite_code)
 
-        driver.get('https://www.spotify.com/en/family/join/address/' + event['invite'])
+        driver.get('https://www.spotify.com/en/family/join/address/' + invite_code)
 
         print("Proceeding to enter address")
         saveScreenshotThrowException(driver, s3, "Pre address ", throw=False)
@@ -140,7 +171,7 @@ def add_family_client(event, context):
         address = driver.find_element(By.ID, 'address')
         address.click()
         time.sleep(1)
-        address.send_keys("Tombs of the Kings Ave 63, Chloraka 8015")
+        address.send_keys(familly_address)
         #pRESSS TAB AND ENTER
         address.send_keys(u'\ue004')
         address.send_keys(u'\ue007')
@@ -160,6 +191,14 @@ def add_family_client(event, context):
 
 
     except Exception as e:
+        tasks_table.update_item(
+            Key={'task_id': task_id},
+            UpdateExpression="set status_string = :s",
+            ExpressionAttributeValues={
+                ':s': 'FAILED'
+            }
+        )
+        saveScreenshotThrowException(driver, s3, "Failed to add client. Screenshot saved as ", throw=False)
         return {
             "statusCode": 500,
             "body": str(e)
@@ -171,6 +210,15 @@ def add_family_client(event, context):
         time.sleep(0.5)
         driver.quit()
         
+
+    tasks_table.update_item(
+        Key={'task_id': task_id},
+        UpdateExpression="set status_string = :s",
+        ExpressionAttributeValues={
+            ':s': 'COMPLETED'
+        }
+    )
+
     response = {
             "statusCode": 200,
             "body": selectText

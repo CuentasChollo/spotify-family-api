@@ -15,7 +15,7 @@ from helper import login, saveScreenshotThrowException, send_keys_naturally
 from selenium_stealth import stealth
 
 
-def add_to_family(event, context):
+def onlyChangeToIndia(event, context):
     options = webdriver.ChromeOptions()
     #service = webdriver.ChromeService("/opt/chromedriver")
 

@@ -3,7 +3,7 @@ import random
 import boto3
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-
+from PIL import Image, ImageDraw, ImageFont
 
 def send_keys_naturally(element, text):
     for char in text:
@@ -85,6 +85,18 @@ def saveScreenshotThrowException(driver, s3, message="", throw=True):
     screenshot_filename = f"/tmp/screenshot_{time.strftime('%Y%m%d-%H%M%S')}.png"
     driver.save_screenshot(screenshot_filename)
     print(f"Screenshot saved as {screenshot_filename}")
+    
+    # Open the screenshot with PIL
+    img = Image.open(screenshot_filename)
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+    
+    # Add the URL to the image
+    url = driver.current_url
+    draw.text((10, 10), url, font=font, fill=(255, 0, 0))
+    
+    # Save the modified image
+    img.save(screenshot_filename)
                     
     # Upload the screenshot to S3
     with open(screenshot_filename, "rb") as data:

@@ -1,7 +1,6 @@
 import json
 import boto3
 import uuid
-from urllib.parse import urlparse
 
 dynamodb = boto3.resource('dynamodb')
 lamda = boto3.client('lambda')
@@ -12,17 +11,18 @@ def init_add_client(event, context):
     task_id = str(uuid.uuid4())
     tasks_table.put_item(Item={'task_id': task_id, 'status_string': 'INITIALIZING'})
 
-    invite_code = None
+    invite_link = None
     physicalAddress = None
 
     if 'inviteLink' in event and 'physicalAddress' in event:
-        # Parse invite_code from the inviteLink
-        parsed_url = urlparse(event['inviteLink'])
-        path_segments = parsed_url.path.split('/')
-        invite_code = path_segments[-1] if path_segments else None
+        invite_link = event['inviteLink']
         physicalAddress = event['physicalAddress']
+        
+        # Ensure the invite link ends with a slash
+        if not invite_link.endswith('/'):
+            invite_link += '/'
     
-    if not invite_code or not physicalAddress:
+    if not invite_link or not physicalAddress:
         # Search in familly_accounts table for an account with less than 5 'people_in'
         response = familly_acc_table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('people_in').lt(5)
@@ -36,10 +36,10 @@ def init_add_client(event, context):
                 'error': 'No available family account found with less than 5 people.'
             }
 
-        invite_code = selected_account['invite_code']
+        invite_link = selected_account['invite_link']
         physicalAddress = selected_account['address']
 
-    event['invite_code'] = invite_code
+    event['inviteLink'] = invite_link
     event['physicalAddress'] = physicalAddress
     event['task_id'] = task_id
 

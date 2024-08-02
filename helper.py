@@ -8,7 +8,6 @@ def send_keys_naturally(element, text):
     for char in text:
         time.sleep(random.uniform(0.1, 0.3))  # delay between key presses
         element.send_keys(char)
-
 def login(driver, event, s3):
     print("Starting login process")
     driver.get('https://accounts.spotify.com/en/login')
@@ -18,8 +17,9 @@ def login(driver, event, s3):
     time.sleep(random.uniform(2.0, 3.0))
 
     loginuser = driver.find_element(By.ID, "login-username")
+    loginuser.clear()  # Clear the username field before typing
     send_keys_naturally(loginuser, event['email'])
-    time.sleep(random.uniform(1.0, 2.0))
+    time.sleep(random.uniform(2.0, 3.1))
 
     password = driver.find_element(By.ID, "login-password")
     send_keys_naturally(password, event['password'])
@@ -30,9 +30,9 @@ def login(driver, event, s3):
     enter = driver.find_element(By.ID, 'login-button')
     actions = ActionChains(driver)
     actions.move_to_element_with_offset(enter, 5, 6).click_and_hold().perform()
-    time.sleep(0.8)
+    time.sleep(0.2)
     actions.release().perform()
-    time.sleep(3)
+    time.sleep(12)
     # While still in login, keep clicking the button
     attempts = 0
     while driver.current_url == "https://accounts.spotify.com/en/login" and attempts < 3:

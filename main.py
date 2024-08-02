@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import time
+import random
 
 def main():
     # Set the path for the chromedriver executable
@@ -15,12 +16,13 @@ def main():
         driver.get('https://accounts.spotify.com/en/login')
         loginuser = driver.find_element(value='login-username')
         loginuser.send_keys('matvetron@gmail.com')
-        time.sleep(2)
+        time.sleep(random.uniform(2.0, 3.0))
         password = driver.find_element(value='login-password')
         password.send_keys('Upgrademyspoty1')
+        time.sleep(random.uniform(2.0, 3.1))
         enter = driver.find_element(value='login-button')
         enter.click()
-        time.sleep(2)
+        time.sleep(random.uniform(1.0, 2.0))
         accountsettings = driver.find_element(value='account-settings-link')
         accountsettings.click()
         time.sleep(2)

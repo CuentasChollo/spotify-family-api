@@ -4,7 +4,7 @@ import uuid
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from captchasolver import solve_captcha
+from challengeSolver import challenge_solver
 from urllib.parse import urlparse
 from tempfile import mkdtemp
 from selenium.webdriver.support.select import Select
@@ -97,11 +97,11 @@ def add_family_client(event, context):
         
         # Check if the current URL is challenge.spotify.com
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
-            print("Captcha found", driver.current_url)
-            solve_captcha(driver)  # Call the solve_captcha function
+            print("Challenge found", driver.current_url)
+            challenge_solver(driver, event)  # Use the renamed function
             time.sleep(2)
 
-        print("Catcha solved", driver.current_url)
+        print("Challenge solved", driver.current_url)
         #if driver.current_url != "https://www.spotify.com/en/status/":
             #raise Exception(driver.current_url)
 
@@ -196,9 +196,11 @@ def add_family_client(event, context):
         
         #https://www.spotify.com/es/family/join/invite/76yA3B1Xc2A6433/ transform to https://www.spotify.com/es/family/join/confirm/76yA3B1Xc2A6433/
         #The argumetnt is event['invite']
-        driver.get('https://www.spotify.com/en/family/join/confirm/' + invite_code)
+        driver.get('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
+        print('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
 
-        driver.get('https://www.spotify.com/en/family/join/address/' + invite_code)
+        driver.get('https://www.spotify.com/in-en/family/join/address/' + invite_code)
+        print('https://www.spotify.com/in-en/family/join/address/' + invite_code)
 
         print("Proceeding to enter address")
         saveScreenshotThrowException(driver, s3, "Pre address ", throw=False)

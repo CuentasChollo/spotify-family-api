@@ -1,8 +1,7 @@
 import json
 import boto3
 import uuid
-import requests
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 dynamodb = boto3.resource('dynamodb')
 lamda = boto3.client('lambda')
@@ -50,4 +49,10 @@ def init_add_client(event, context):
         Payload=json.dumps(event)
     )
     
-    return task_id
+    return {
+    'statusCode': 200,
+    'body': json.dumps({'task_id': task_id}),
+    'headers': {
+        'Content-Type': 'application/json'
+        }
+    }

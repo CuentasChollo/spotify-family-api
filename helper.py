@@ -30,7 +30,7 @@ def login(driver, event, s3):
     enter = driver.find_element(By.ID, 'login-button')
     actions = ActionChains(driver)
     actions.move_to_element_with_offset(enter, 5, 6).click_and_hold().perform()
-    time.sleep(0.2)
+    time.sleep(0.3)
     actions.release().perform()
     time.sleep(12)
     # While still in login, keep clicking the button

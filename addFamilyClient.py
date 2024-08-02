@@ -4,7 +4,7 @@ import uuid
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from challengeSolver import challenge_solver
+from challengeSolver import solve_captcha  # Change this line
 from urllib.parse import urlparse
 from tempfile import mkdtemp
 from selenium.webdriver.support.select import Select
@@ -27,7 +27,7 @@ def add_family_client(event, context):
 
 
     physicalAddress = event['physicalAddress']
-    invite_code = event['invite_code']
+    invite_link = event['inviteLink']
     #email = event['email']
     #password = event['password']
     task_id = event['task_id']
@@ -84,7 +84,7 @@ def add_family_client(event, context):
         update_task_status(task_id, 'SOLVING_CAPTCHA', 'Checking for solving any captchas')
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
             print("Challenge found", driver.current_url)
-            challenge_solver(driver, event)
+            solve_captcha(driver, event)  # Change this line
             time.sleep(2)
 
         print("Challenge solved", driver.current_url)
@@ -179,15 +179,17 @@ def add_family_client(event, context):
                 if i == 9:
                     print("Failed to click submit button after 10 attempts")
                     raise e
-        
-        #https://www.spotify.com/es/family/join/invite/76yA3B1Xc2A6433/ transform to https://www.spotify.com/es/family/join/confirm/76yA3B1Xc2A6433/
-        #The argumetnt is event['invite']
-        update_task_status(task_id, 'JOINING_FAMILY', 'Joining family plan')
-        driver.get('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
-        print('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
+      
+        # ... (previous code remains unchanged until the family joining part)
 
-        driver.get('https://www.spotify.com/in-en/family/join/address/' + invite_code)
-        print('https://www.spotify.com/in-en/family/join/address/' + invite_code)
+        update_task_status(task_id, 'JOINING_FAMILY', 'Joining family plan')
+        confirm_link = invite_link.replace('/invite/', '/confirm/')
+        driver.get(confirm_link)
+        print(f'Navigating to confirm page: {confirm_link}')
+
+        address_link = invite_link.replace('/join/invite/', '/join/address/')
+        driver.get(address_link)
+        print(f'Navigating to address page: {address_link}')
 
         update_task_status(task_id, 'ENTERING_ADDRESS', 'Entering family address')
         print("Proceeding to enter address")
@@ -197,7 +199,6 @@ def add_family_client(event, context):
         address.click()
         time.sleep(1)
         address.send_keys(physicalAddress)
-        #pRESSS TAB AND ENTER
         address.send_keys(u'\ue004')
         address.send_keys(u'\ue007')
         time.sleep(1)
@@ -206,12 +207,12 @@ def add_family_client(event, context):
         #saveScreenshotThrowException(driver, s3, "Address entered. Screenshot saved as ", throw=False)
         #submit = driver.find_element(By.CSS_SELECTOR, "[type='submit']")
         #submit.click()
-        time.sleep(1)
+        time.sleep(random.uniform(1, 1.5))
         saveScreenshotThrowException(driver, s3, "Clicked submit. Screenshot saved as ", throw=False)
         update_task_status(task_id, 'CONFIRMING', 'Confirming family plan join')
         confirm = driver.find_element(By.CSS_SELECTOR, "[data-encore-id='buttonPrimary']")
         confirm.click()
-        time.sleep(1)
+        time.sleep(random.uniform(1, 1.5))
         saveScreenshotThrowException(driver, s3, "Clicked confirm. Screenshot saved as ", throw=False)
         print("Clicked confirm | Accepted invite")
 

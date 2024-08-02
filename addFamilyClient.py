@@ -15,7 +15,7 @@ import boto3
 from helper import login, saveScreenshotThrowException, send_keys_naturally
 from selenium_stealth import stealth
 from fake_useragent import UserAgent
-
+import re
 
 tasks_table = boto3.resource('dynamodb').Table('tasks')
 
@@ -26,7 +26,7 @@ def add_family_client(event, context):
     userAgent = ua.random
 
 
-    familly_address = event['address']
+    physicalAddress = event['physicalAddress']
     invite_code = event['invite_code']
     #email = event['email']
     #password = event['password']
@@ -36,7 +36,7 @@ def add_family_client(event, context):
         Key={'task_id': task_id},
         UpdateExpression="set status_string = :s",
         ExpressionAttributeValues={
-            ':s': 'RECEIVED'
+            ':s': 'INITIATED'
         }
     )
 
@@ -81,11 +81,19 @@ def add_family_client(event, context):
             Key={'task_id': task_id},
             UpdateExpression="set status_string = :s",
             ExpressionAttributeValues={
-                ':s': 'COMMENCING'
+                ':s': 'IN_PROGRESS'
             }
         )
 
         login(driver, event, s3)
+
+        tasks_table.update_item(
+            Key={'task_id': task_id},
+            UpdateExpression="set status_string = :s",
+            ExpressionAttributeValues={
+                ':s': 'SOLVING_CAPTCHA'
+            }
+        )
         
         # Check if the current URL is challenge.spotify.com
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
@@ -100,6 +108,33 @@ def add_family_client(event, context):
         print("Going to profile page")
         driver.get('https://www.spotify.com/us/account/profile/')
         print(driver.current_url)
+
+        
+        
+        ## BEING ASKED TO LOGIN AFTER SOLVING CAPTCHA
+        login_url_pattern = r'https://accounts\.spotify\.com/.*/login'
+        max_login_attempts = 3
+        login_attempts = 0
+
+        while re.match(login_url_pattern, driver.current_url) and login_attempts < max_login_attempts:
+            print(f"Redirected to login page. Attempt {login_attempts + 1} of {max_login_attempts}")
+            login(driver, event, s3)
+            
+            # After login, navigate back to the profile page
+            print("Navigating back to profile page")
+            driver.get('https://www.spotify.com/us/account/profile/')
+            time.sleep(5)  # Wait for page to load
+            print(f"Current URL: {driver.current_url}")
+            
+            login_attempts += 1
+
+        if re.match(login_url_pattern, driver.current_url):
+            raise Exception("Failed to log in after multiple attempts")
+
+        print(f"Successfully on profile page. Current URL: {driver.current_url}")
+
+
+
         time.sleep(2)
         #Scroll down and up 4 times in a smooth way
         for i in range(4):
@@ -171,7 +206,7 @@ def add_family_client(event, context):
         address = driver.find_element(By.ID, 'address')
         address.click()
         time.sleep(1)
-        address.send_keys(familly_address)
+        address.send_keys(physicalAddress)
         #pRESSS TAB AND ENTER
         address.send_keys(u'\ue004')
         address.send_keys(u'\ue007')
@@ -225,6 +260,3 @@ def add_family_client(event, context):
         }
 
     return response
-    
-
-

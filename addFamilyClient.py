@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 import boto3
-from helper import login, saveScreenshotThrowException, send_keys_naturally
+from helper import login, saveScreenshotThrowException, send_keys_naturally, update_task_status
 from selenium_stealth import stealth
 from fake_useragent import UserAgent
 import re
@@ -75,36 +75,21 @@ def add_family_client(event, context):
     )
 
     try:
+        update_task_status(task_id, 'INITIALIZING', 'Setting up the browser')
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-        tasks_table.update_item(
-            Key={'task_id': task_id},
-            UpdateExpression="set status_string = :s",
-            ExpressionAttributeValues={
-                ':s': 'IN_PROGRESS'
-            }
-        )
-
+        update_task_status(task_id, 'LOGGING_IN', 'Attempting to log in')
         login(driver, event, s3)
 
-        tasks_table.update_item(
-            Key={'task_id': task_id},
-            UpdateExpression="set status_string = :s",
-            ExpressionAttributeValues={
-                ':s': 'SOLVING_CAPTCHA'
-            }
-        )
-        
-        # Check if the current URL is challenge.spotify.com
+        update_task_status(task_id, 'SOLVING_CAPTCHA', 'Checking for solving any captchas')
         if urlparse(driver.current_url).netloc == "challenge.spotify.com":
             print("Challenge found", driver.current_url)
-            challenge_solver(driver, event)  # Use the renamed function
+            challenge_solver(driver, event)
             time.sleep(2)
 
         print("Challenge solved", driver.current_url)
-        #if driver.current_url != "https://www.spotify.com/en/status/":
-            #raise Exception(driver.current_url)
 
+        update_task_status(task_id, 'NAVIGATING', 'Navigating to profile page')
         print("Going to profile page")
         driver.get('https://www.spotify.com/us/account/profile/')
         print(driver.current_url)
@@ -164,6 +149,7 @@ def add_family_client(event, context):
 
                     
         #Change in the selector country to value=IN
+        update_task_status(task_id, 'UPDATING_PROFILE', 'Updating profile information')
         select = Select(driver.find_element(By.ID, 'country'))
         select.select_by_value('IN')
         selectText = select.first_selected_option.text
@@ -196,12 +182,14 @@ def add_family_client(event, context):
         
         #https://www.spotify.com/es/family/join/invite/76yA3B1Xc2A6433/ transform to https://www.spotify.com/es/family/join/confirm/76yA3B1Xc2A6433/
         #The argumetnt is event['invite']
+        update_task_status(task_id, 'JOINING_FAMILY', 'Joining family plan')
         driver.get('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
         print('https://www.spotify.com/in-en/family/join/confirm/' + invite_code)
 
         driver.get('https://www.spotify.com/in-en/family/join/address/' + invite_code)
         print('https://www.spotify.com/in-en/family/join/address/' + invite_code)
 
+        update_task_status(task_id, 'ENTERING_ADDRESS', 'Entering family address')
         print("Proceeding to enter address")
         saveScreenshotThrowException(driver, s3, "Pre address ", throw=False)
         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'address')))
@@ -220,6 +208,7 @@ def add_family_client(event, context):
         #submit.click()
         time.sleep(1)
         saveScreenshotThrowException(driver, s3, "Clicked submit. Screenshot saved as ", throw=False)
+        update_task_status(task_id, 'CONFIRMING', 'Confirming family plan join')
         confirm = driver.find_element(By.CSS_SELECTOR, "[data-encore-id='buttonPrimary']")
         confirm.click()
         time.sleep(1)
@@ -228,13 +217,7 @@ def add_family_client(event, context):
 
 
     except Exception as e:
-        tasks_table.update_item(
-            Key={'task_id': task_id},
-            UpdateExpression="set status_string = :s",
-            ExpressionAttributeValues={
-                ':s': 'FAILED'
-            }
-        )
+        update_task_status(task_id, 'FAILED', f'Error: {str(e)}')
         saveScreenshotThrowException(driver, s3, "Failed to add client. Screenshot saved as ", throw=False)
         return {
             "statusCode": 500,
@@ -242,19 +225,14 @@ def add_family_client(event, context):
          }
             
     finally:
+        update_task_status(task_id, 'LOGGING_OUT', 'Logging out and cleaning up')
         driver.get('https://www.spotify.com/en/logout/')
         print("Logging out")
         time.sleep(0.5)
         driver.quit()
         
 
-    tasks_table.update_item(
-        Key={'task_id': task_id},
-        UpdateExpression="set status_string = :s",
-        ExpressionAttributeValues={
-            ':s': 'COMPLETED'
-        }
-    )
+    update_task_status(task_id, 'COMPLETED', 'Successfully joined family plan')
 
     response = {
             "statusCode": 200,

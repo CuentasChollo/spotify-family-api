@@ -1,5 +1,6 @@
 import time
 import random
+import boto3
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 
@@ -8,14 +9,28 @@ def send_keys_naturally(element, text):
     for char in text:
         time.sleep(random.uniform(0.1, 0.3))  # delay between key presses
         element.send_keys(char)
+
+def update_task_status(task_id, status, step_description):
+    tasks_table = boto3.resource('dynamodb').Table('tasks')
+    tasks_table.update_item(
+        Key={'task_id': task_id},
+        UpdateExpression="set status_string = :s, step_description = :d",
+        ExpressionAttributeValues={
+            ':s': status,
+            ':d': step_description
+        }
+    )
+
 def login(driver, event, s3):
     print("Starting login process")
+    update_task_status(event['task_id'], 'LOGGING_IN', 'Navigating to login page')
     driver.get('https://accounts.spotify.com/en/login')
   
     print("Window size: ", driver.get_window_size())
          
     time.sleep(random.uniform(2.0, 3.0))
 
+    update_task_status(event['task_id'], 'LOGGING_IN', 'Entering credentials')
     loginuser = driver.find_element(By.ID, "login-username")
     loginuser.clear()  # Clear the username field before typing
     send_keys_naturally(loginuser, event['email'])
@@ -27,6 +42,7 @@ def login(driver, event, s3):
 
     print("Clicking login", driver.current_url)
 
+    update_task_status(event['task_id'], 'LOGGING_IN', 'Submitting login form')
     enter = driver.find_element(By.ID, 'login-button')
     actions = ActionChains(driver)
     actions.move_to_element_with_offset(enter, 5, 6).click_and_hold().perform()

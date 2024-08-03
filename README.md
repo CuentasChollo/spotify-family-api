@@ -1,4 +1,4 @@
-# Selenium Lambda Project
+# Selenium Lambda Project 🐍
 
 This project sets up a Selenium environment in an AWS Lambda function, using a custom Docker image.
 

@@ -15,10 +15,10 @@ def main():
     try:
         driver.get('https://accounts.spotify.com/en/login')
         loginuser = driver.find_element(value='login-username')
-        loginuser.send_keys('matvetron@gmail.com')
+        loginuser.send_keys('lambda001@cuentascholl.com')
         time.sleep(random.uniform(2.0, 3.0))
         password = driver.find_element(value='login-password')
-        password.send_keys('Upgrademyspoty1')
+        password.send_keys('Mieromiero1')
         time.sleep(random.uniform(2.0, 3.1))
         enter = driver.find_element(value='login-button')
         enter.click()

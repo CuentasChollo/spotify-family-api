@@ -132,7 +132,7 @@ def input_confirmation_code(driver, code, task_id):
         raise
 
 def main():
-    service = Service('/Users/matveydergunov/chromedriver')
+    service = Service('/Users/{username}/chromedriver')
     driver = webdriver.Chrome(service=service)
 
     # Sample event object for testing

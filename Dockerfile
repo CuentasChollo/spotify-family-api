@@ -25,6 +25,8 @@ RUN python -m pip install ffmpeg
 
 RUN pip install ffmpeg-python
 
+RUN pip install pillow
+
 
 
 RUN python -m pip install selenium-recaptcha-solver

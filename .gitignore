@@ -1,0 +1,6 @@
+.env
+venv
+.aws-sam
+__pycache__
+.DS_Store
+myenv

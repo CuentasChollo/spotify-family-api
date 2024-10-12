@@ -1,59 +1,111 @@
-# Selenium Lambda Project 🐍
+### Spotify Family Api
 
-This project sets up a Selenium environment in an AWS Lambda function, using a custom Docker image.
+This project manages Spotify family accounts and automates tasks like adding clients, changing emails, deleting members, and retrieving family data. It utilizes Selenium, AWS Lambda, and a PostgreSQL database.
 
-## Prerequisites
+Project Structure
+├── .gitignore          # Files and folders to ignore for Git
+├── Dockerfile          # Docker configuration for the Lambda environment
+├── README.md           # This file
+├── local               # Files for local testing
+│   ├── event.json      # Sample event data for local execution
+│   ├── local_add_family_client.py # Script to simulate adding a family client locally
+│   └── maps.py         # Script for generating random addresses (unused in core functionality)
+├── models.py           # Database models using SQLAlchemy
+├── pyright.toml        # Configuration for Pyright type checker
+├── scripts             # Shell scripts for deployment and cleanup
+│   ├── cleanup.sh      # Cleans up old Docker images in ECR
+│   └── upload.sh       # Builds and uploads the Docker image to ECR
+└── src                 # Source code for Lambda functions and utilities
+    ├── extra           # Additional scripts, e.g., changing country to India
+    │   └── only_change_to_india.py
+    ├── lambda_functions # AWS Lambda functions
+    │   ├── executors   # Core logic for Lambda functions
+    │   │   ├── change_email.py
+    │   │   ├── change_email_api.py
+    │   │   ├── delete_member.py
+    │   │   ├── get_family_raw_memberships.py
+    │   │   ├── join_family.py
+    │   │   └── retrieve_family_data.py
+    │   └── initializers # Lambda functions to initiate asynchronous tasks
+    │       ├── init_change_email.py
+    │       ├── init_delete_member.py
+    │       ├── init_get_family_raw_memberships.py
+    │       ├── init_join_family.py
+    │       └── init_retrieve_family_data.py
+    └── utils            # Utility functions
+        ├── challenge_solver.py # Handles CAPTCHA solving and email confirmations
+        ├── confirmation_code.py # Extracts confirmation codes from emails
+        ├── helper.py       # Helper functions for login, screenshots, etc.
+        └── invoice_parser.py # Parses invoices to extract premium end date
+content_copy
+Use code with caution.
+Functionality
+Lambda Functions
 
-- Docker
-- AWS CLI configured with appropriate permissions
-- An AWS ECR repository named "selenium" in the ap-south-1 region
+executors:
 
-## Setup
+change_email.py: Changes the email address of a Spotify family account.
 
-1. Clone this repository to your local machine.
+change_email_api.py: Changes the email via Spotify API.
 
-2. Create a `.env` file in the project root with the following content:
+delete_member.py: Removes a member from a Spotify family account.
 
-```
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
-```
+get_family_raw_memberships.py: Retrieves the raw membership data for a family account.
 
-Replace `your_access_key_id`, `your_secret_access_key` with your actual AWS credentials.
+join_family.py: Adds a new member to a Spotify family account.
 
-3. Build the Docker image by running the following command:
+retrieve_family_data.py: Retrieves family account data, including address, members, and premium end date.
 
-```
-docker build -t selenium .
-```
+initializers: These functions initiate asynchronous tasks and store task status in the database. They then trigger the corresponding executor function.
 
-4. Push the Docker image to your ECR repository:
+init_change_email.py
 
-```
-docker tag selenium:latest <account_id>.dkr.ecr.ap-south-1.amazonaws.com/selenium:latest
-aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account_id>.dkr.ecr.ap-south-1.amazonaws.com
-docker push <account_id>.dkr.ecr.ap-south-1.amazonaws.com/selenium:latest
-```
+init_delete_member.py
 
-5. Update the `lambda_function.py` file with the correct ECR image URL and environment variables.
+init_get_family_raw_memberships.py
 
-6. Deploy the Lambda function using the AWS CLI:
+init_join_family.py
 
-```
-aws lambda create-function --function-name selenium-lambda --runtime python3.8 --role <lambda_execution_role_arn> --handler lambda_function.lambda_handler --environment Variables={"AWS_ACCESS_KEY_ID":"${AWS_ACCESS_KEY_ID}","AWS_SECRET_ACCESS_KEY":"${AWS_SECRET_ACCESS_KEY}","AWS_API_KEY":"${AWS_API_KEY}"} --image-uri <account_id>.dkr.ecr.ap-south-1.amazonaws.com/selenium:latest --timeout 300
-```
+init_retrieve_family_data.py
 
-7. Test the Lambda function by invoking it:
+Utilities
 
-```
-aws lambda invoke --function-name selenium-lambda --payload '{}' response.json
-```
+challenge_solver.py: Solves reCAPTCHA challenges and handles email confirmation challenges.
 
-8. Verify the output in the `response.json` file.
+confirmation_code.py: Retrieves confirmation codes from emails using IMAP.
 
-Note: Make sure to replace `<account_id>` with your actual AWS account ID, and `<lambda_execution_role_arn>` with the ARN of the IAM role that will be used to execute the Lambda function.
+helper.py: Contains helper functions for common tasks such as login, saving screenshots, and updating task status in the database.
 
+invoice_parser.py: Parses email invoices to extract the premium end date.
 
+Setup and Deployment
 
-## Command to generate the model
-sqlacodegen postgresql://postgres.ergwosoutrzabjxuvkvg:[PASS]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres > models.py
+This project uses Docker to containerize the Lambda functions and AWS ECR to store the Docker images. See the README.md file for detailed instructions on setup and deployment. The project requires a PostgreSQL database and utilizes environment variables for configuration.
+
+Key Improvements and Considerations
+
+Asynchronous Tasks: The use of initializer and executor functions allows for asynchronous processing of long-running tasks, improving responsiveness.
+
+CAPTCHA Solving: Implements reCAPTCHA solving using selenium-recaptcha-solver and handles email confirmations.
+
+Email Parsing: Parses emails for confirmation codes and invoice data using imaplib and BeautifulSoup.
+
+Database Integration: Uses SQLAlchemy to interact with a PostgreSQL database, storing task status and family account information.
+
+Error Handling: Includes error handling and screenshot capture for debugging.
+
+Stealth Techniques: Employs various techniques to make the Selenium browser appear less like a bot.
+
+API Interaction (Where Possible): The project attempts to use the Spotify API where possible for more efficient and reliable interactions.
+
+Further Development
+
+Improved CAPTCHA Solving: Explore more robust CAPTCHA solving solutions for better reliability.
+
+Enhanced Error Handling: Add more granular error handling and logging.
+
+Testing: Implement comprehensive unit and integration tests.
+
+Secret Management: Use a secure secret management solution instead of storing credentials in environment variables.
+
+This enhanced README provides a more comprehensive overview of the project's structure, functionality, and setup, making it easier for others to understand and contribute. It also highlights key improvements and areas for future development.
